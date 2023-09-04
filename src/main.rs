@@ -5,6 +5,7 @@ use std::io::{BufRead, Write};
 struct Task {
     name: String,
     done: bool,
+    tags: Vec<String>,
 }
 
 fn main() {
@@ -26,10 +27,10 @@ fn main() {
 
 fn print_menu() {
     println!("\nTODO App");
-    println!("1. ADD          | Add a new task");
-    println!("2. LIST         | List all tasks");
-    println!("3. DONE or EDIT | Mark a task as done or change its name");
-    println!("4. EXIT         | Exit the program");
+    println!("1. ADD  | Add a new task");
+    println!("2. LIST | List all tasks");
+    println!("3. EDIT | Edit a task");
+    println!("4. EXIT | Exit the program");
 }
 
 fn read_command() -> i32 {
@@ -38,7 +39,6 @@ fn read_command() -> i32 {
     match command.trim() {
         "ADD" => 1,
         "LIST" => 2,
-        "DONE" => 3,
         "EDIT" => 3,
         "EXIT" => 4,
         "1" => 1,
@@ -51,10 +51,9 @@ fn read_command() -> i32 {
 
 fn add_task() -> Vec<Task> {
     let mut tasks: Vec<Task> = Vec::new();
-
     loop {
-        let mut task_name = String::new();
         println!("Enter new task (press enter to stop adding):");
+        let mut task_name = String::new();
         io::stdin()
             .read_line(&mut task_name)
             .expect("Failed to read line");
@@ -64,9 +63,20 @@ fn add_task() -> Vec<Task> {
             break;
         }
 
+        println!("Enter tags for the task (comma-separated):");
+        let mut tags_input = String::new();
+        io::stdin()
+            .read_line(&mut tags_input)
+            .expect("Failed to read line");
+        let tags: Vec<String> = tags_input
+            .split(',')
+            .map(|tag| tag.trim().to_string())
+            .collect();
+
         let task = Task {
             name: task_name.to_string(),
             done: false,
+            tags,
         };
         tasks.push(task);
 
@@ -80,9 +90,9 @@ fn list_tasks(tasks: &Vec<Task>) {
     println!("\nTasks:");
     for (i, task) in tasks.iter().enumerate() {
         if task.done {
-            println!("{}. [X] {}", i + 1, task.name);
+            println!("{}. [X] {} - Tags: {:?}", i + 1, task.name, task.tags);
         } else {
-            println!("{}. [ ] {}", i + 1, task.name);
+            println!("{}. [ ] {} - Tags: {:?}", i + 1, task.name, task.tags);
         }
     }
 }
@@ -109,7 +119,7 @@ fn get_index(tasks: &Vec<Task>) -> usize {
 }
 
 fn edit_task(task: usize, tasks: &mut Vec<Task>) {
-    println!("\nTask to edit: {} / Done: {}", tasks[task].name, tasks[task].done);
+    println!("\nTask to edit: {} / Done: {} - Tags: {:?}", tasks[task].name, tasks[task].done, tasks[task].tags);
     print_edit_options();
     match read_edit_command() {
         1 => edit_task_name(task, tasks),
@@ -156,7 +166,7 @@ fn save_tasks(tasks: &Vec<Task>) {
     };
 
     for task in tasks {
-        let line = format!("{} {}\n", task.name, task.done);
+        let line = format!("{} {} {}\n", task.name, task.done, task.tags.join(","));
         if let Err(err) = file.write_all(line.as_bytes()) {
             println!("Failed to write to file: {}", err);
             return;
@@ -208,9 +218,17 @@ fn load_tasks() -> Vec<Task> {
                 return tasks;
             }
         };
+        let tags = match parts.next() {
+            Some(tags) => tags.split(',').map(|tag| tag.to_string()).collect(),
+            None => {
+                println!("Failed to read task tags");
+                return tasks;
+            }
+        };
         let task = Task {
             name: name.to_string(),
             done,
+            tags,
         };
         tasks.push(task);
     }
