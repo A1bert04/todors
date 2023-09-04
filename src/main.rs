@@ -39,7 +39,8 @@ fn main() {
                     println!("Invalid index");
                 }
             }
-            5 => {
+            5 => search(&tasks),
+            6 => {
                 save_tasks(&tasks);
                 break;
             }
@@ -50,12 +51,13 @@ fn main() {
 
 fn print_menu() {
     println!("\nTODO App");
-    println!("ADD    | Add a new task");
-    println!("LIST   | List all tasks");
-    println!("EDIT   | Edit a task");
-    println!("EDIT 1 | Edit task number 1 (replace 1 with the task number)");
-    println!("DONE 1 | Mark task number 1 as done (replace 1 with the task number)");
-    println!("EXIT   | Exit the program");
+    println!("ADD       | Add a new task");
+    println!("LIST      | List all tasks");
+    println!("EDIT      | Edit a task");
+    println!("EDIT 1    | Edit task number 1 (replace 1 with the task number)");
+    println!("DONE 1    | Mark task number 1 as done (replace 1 with the task number)");
+    println!("SEARCH    | Search tasks by tag or name (replace tag with the tag or name)");
+    println!("EXIT      | Exit the program");
 }
 
 fn read_command() -> (i32, usize) {
@@ -78,7 +80,8 @@ fn read_command() -> (i32, usize) {
         "LIST" => (2, 0),
         "EDIT" => (3, index),
         "DONE" => (4, index),
-        "EXIT" => (5, 0),
+        "SEARCH" => (5, 0),
+        "EXIT" => (6, 0),
         _ => (0, 0),
     }
 }
@@ -88,11 +91,7 @@ fn read_command() -> (i32, usize) {
 fn list_tasks(tasks: &Vec<Task>) {
     println!("\nTasks:");
     for (i, task) in tasks.iter().enumerate() {
-        if task.done {
-            println!("{}. [X] {} - Tags: {:?}", i + 1, task.name, task.tags);
-        } else {
-            println!("{}. [ ] {} - Tags: {:?}", i + 1, task.name, task.tags);
-        }
+        print_task(task, i)
     }
 }
 
@@ -114,5 +113,26 @@ fn get_index(tasks: &Vec<Task>) -> usize {
         } else {
             println!("Invalid index");
         }
+    }
+}
+
+fn search(tasks: &Vec<Task>) {
+    println!("Enter tag or name to search:");
+    let mut filter = String::new();
+    io::stdin().read_line(&mut filter).expect("Failed to read line");
+    let filter = filter.trim();
+    println!("\nTasks:");
+    for (i, task) in tasks.iter().enumerate() {
+        if task.name.contains(filter) || task.tags.contains(&filter.to_string()) {
+            print_task(task, i);
+        }
+    }
+}
+
+fn print_task(task: &Task, index: usize) {
+    if task.done {
+        println!("{}. [X] {} - Tags: {:?}", index + 1, task.name, task.tags);
+    } else {
+        println!("{}. [ ] {} - Tags: {:?}", index + 1, task.name, task.tags);
     }
 }
