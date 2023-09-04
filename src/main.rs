@@ -12,13 +12,30 @@ fn main() {
     let mut tasks: Vec<Task> = load_tasks();
     loop {
         print_menu();
-        match read_command() {
+        let (action, index) = read_command();
+        match action {
             1 => tasks.append(&mut add_task()),
             2 => list_tasks(&tasks),
-            3 => edit_task(get_index(&tasks), &mut tasks),
+            3 => {
+                if index > 0 && index <= tasks.len() {
+                    edit_task(index - 1, &mut tasks);
+                } else if index == 0 {
+                    let index = get_index(&tasks);
+                    edit_task(index, &mut tasks);
+                } else {
+                    println!("Invalid index");
+                }
+            }
             4 => {
+                if index > 0 && index <= tasks.len() {
+                    mark_task_done(index, &mut tasks);
+                } else {
+                    println!("Invalid index");
+                }
+            }
+            5 => {
                 save_tasks(&tasks);
-                std::process::exit(0);
+                break;
             }
             _ => println!("Invalid command"),
         }
@@ -27,27 +44,39 @@ fn main() {
 
 fn print_menu() {
     println!("\nTODO App");
-    println!("1. ADD  | Add a new task");
-    println!("2. LIST | List all tasks");
-    println!("3. EDIT | Edit a task");
-    println!("4. EXIT | Exit the program");
+    println!("ADD    | Add a new task");
+    println!("LIST   | List all tasks");
+    println!("EDIT   | Edit a task");
+    println!("EDIT 1 | Edit task number 1 (replace 1 with the task number)");
+    println!("DONE 1 | Mark task number 1 as done (replace 1 with the task number)");
+    println!("EXIT   | Exit the program");
 }
 
-fn read_command() -> i32 {
+fn read_command() -> (i32, usize) {
     let mut command = String::new();
     io::stdin().read_line(&mut command).expect("Failed to read line");
-    match command.trim() {
-        "ADD" => 1,
-        "LIST" => 2,
-        "EDIT" => 3,
-        "EXIT" => 4,
-        "1" => 1,
-        "2" => 2,
-        "3" => 3,
-        "4" => 4,
-        _ => 0,
+    let parts: Vec<&str> = command.trim().split_whitespace().collect();
+    let action = match parts.get(0) {
+        Some(&action) => action,
+        None => "",
+    };
+    let index = match parts.get(1) {
+        Some(&index) => match index.parse() {
+            Ok(index) => index,
+            Err(_) => 0,
+        },
+        None => 0,
+    };
+    match action {
+        "ADD" => (1, 0),
+        "LIST" => (2, 0),
+        "EDIT" => (3, index),
+        "DONE" => (4, index),
+        "EXIT" => (5, 0),
+        _ => (0, 0),
     }
 }
+
 
 fn add_task() -> Vec<Task> {
     let mut tasks: Vec<Task> = Vec::new();
@@ -124,15 +153,28 @@ fn edit_task(task: usize, tasks: &mut Vec<Task>) {
     match read_edit_command() {
         1 => edit_task_name(task, tasks),
         2 => tasks[task].done = true,
-        3 => (),
+        3 => {
+            println!("Enter new tags (comma-separated):");
+            let mut tags_input = String::new();
+            io::stdin()
+                .read_line(&mut tags_input)
+                .expect("Failed to read line");
+            let tags: Vec<String> = tags_input
+                .split(',')
+                .map(|tag| tag.trim().to_string())
+                .collect();
+            tasks[task].tags = tags;
+        }
+        4 => (),
         _ => println!("Invalid command"),
     }
 }
 
 fn print_edit_options() {
-    println!("1. EDIT | Edit task name");
-    println!("2. DONE | Mark task as done");
-    println!("3. BACK | Go back to main menu");
+    println!("EDIT | Edit task name");
+    println!("DONE | Mark task as done");
+    println!("TAGS | Edit task tags");
+    println!("BACK | Go back to main menu");
 }
 
 fn read_edit_command() -> i32 {
@@ -141,10 +183,8 @@ fn read_edit_command() -> i32 {
     match command.trim() {
         "EDIT" => 1,
         "DONE" => 2,
-        "BACK" => 3,
-        "1" => 1,
-        "2" => 2,
-        "3" => 3,
+        "TAGS" => 3,
+        "BACK" => 4,
         _ => 0,
     }
 }
@@ -234,4 +274,13 @@ fn load_tasks() -> Vec<Task> {
     }
 
     tasks
+}
+
+fn mark_task_done(index: usize, tasks: &mut Vec<Task>) {
+    if let Some(task) = tasks.get_mut(index - 1) {
+        task.done = true;
+        println!("Task number {} marked as done", index);
+    } else {
+        println!("Invalid index");
+    }
 }
